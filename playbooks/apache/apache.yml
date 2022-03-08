@@ -7,35 +7,37 @@
 # site_conf_name: name of webserver config file passed to a2ensite
 
 # Copy server config
+---
+- hosts: all
+  tasks: 
+    - name: Copying server config...
+      ansible.builtin.copy:
+        src: "{{webserver_config}}"
+        dest: /etc/apache2/sites-available
 
-- name: Copying server config...
-  ansible.builtin.copy:
-    src: "{{webserver_config}}"
-    dest: /etc/apache2/sites-available
+    - name: Copying encryption key...
+      ansible.builtin.copy:
+        src: "{{encryption_key}}"
+        dest: /etc/ssl/private
+        owner: root
+        group: root
+        mode: '0644'
 
-- name: Copying encryption key...
-  ansible.builtin.copy:
-    src: "{{encryption_key}}"
-    dest: /etc/ssl/private
-    owner: root
-    group: root
-    mode: '0644'
+    - name: Enabling site
+      ansible.builtin.shell:
+        cmd: "a2ensite {{site_conf_name}}"
 
-- name: Enabling site
-  ansible.builtin.shell:
-    cmd: "a2ensite {{site_conf_name}}"
+    # enable needed mods
+    - name: Enabling mod SSL
+      community.general.apache2_module:
+        name: ssl
 
-# enable needed mods
-- name: Enabling mod SSL
-  community.general.apache2_module:
-    name: ssl
+    - name: Enabling mod PHP
+      community.general.apache2_module:
+        name: php8.1
 
-- name: Enabling mod PHP
-  community.general.apache2_module:
-    name: php8.1
-
-# restart Apache
-- name: Restarting Apache...
-  ansible.builtin.systemd:
-    name: apache2
-    state: restarted
+    # restart Apache
+    - name: Restarting Apache...
+      ansible.builtin.systemd:
+        name: apache2
+        state: restarted
